@@ -10,8 +10,10 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]  # Add more OSes if needed (e.g., macos-latest)
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -41,46 +43,62 @@ jobs:
     - name: Publish Test Results
       uses: actions/upload-artifact@v4
       with:
-        name: test-results
+        name: test-results-${{ matrix.os }}
         path: TestResults/
       if: always()
 
     - name: Publish
       run: dotnet publish --configuration Release -o ./publish
 
-    - name: Compress Artifacts
+    - name: Compress Artifacts (Windows)
+      if: matrix.os == 'windows-latest'
       run: Compress-Archive -Path .\publish\* -DestinationPath ConApp1Net8ActionBuildTest-windows.zip
 
+    - name: Compress Artifacts (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        mkdir -p ConApp1Net8ActionBuildTest-linux
+        cp -r ./publish/* ConApp1Net8ActionBuildTest-linux/
+        tar -czvf ConApp1Net8ActionBuildTest-linux.tar.gz ConApp1Net8ActionBuildTest-linux
+
     - name: Clean Up (Optional)
-      run: Remove-Item -Recurse -Force ./publish
+      run: |
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          Remove-Item -Recurse -Force ./publish
+        else
+          rm -rf ./publish
+        fi
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ConApp1Net8ActionBuildTest-windows
-        path: ConApp1Net8ActionBuildTest-windows.zip
+        name: ConApp1Net8ActionBuildTest-${{ matrix.os }}
+        path: |
+          ConApp1Net8ActionBuildTest-windows.zip
+          ConApp1Net8ActionBuildTest-linux.tar.gz
 
   release:
     needs: build
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Download Artifact
+    - name: Download Artifacts
       uses: actions/download-artifact@v4
       with:
-        name: ConApp1Net8ActionBuildTest-windows
         path: ./artifacts
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ConApp1Net8ActionBuildTest_BootySmells_v${{ github.run_number }}
-        name: ConApp1Net8ActionBuildTest_BootySmells_Release v${{ github.run_number }}
+        tag_name: ConApp1Net8ActionBuildTest-v${{ github.run_number }}
+        name: ConApp1Net8ActionBuildTest Release v${{ github.run_number }}
         draft: false
         prerelease: false
-        files: ./artifacts/ConApp1Net8ActionBuildTest-windows.zip
+        files: |
+          ./artifacts/ConApp1Net8ActionBuildTest-windows-latest/ConApp1Net8ActionBuildTest-windows.zip
+          ./artifacts/ConApp1Net8ActionBuildTest-ubuntu-latest/ConApp1Net8ActionBuildTest-linux.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
