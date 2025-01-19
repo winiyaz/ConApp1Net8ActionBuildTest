@@ -63,11 +63,11 @@ jobs:
 
     - name: Clean Up (Optional)
       run: |
-        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+        if ("${{ matrix.os }}" -eq "windows-latest") {
           Remove-Item -Recurse -Force ./publish
-        else
+        } else {
           rm -rf ./publish
-        fi
+        }
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
