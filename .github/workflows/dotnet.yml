@@ -62,12 +62,13 @@ jobs:
         tar -czvf ConApp1Net8ActionBuildTest-linux.tar.gz ConApp1Net8ActionBuildTest-linux
 
     - name: Clean Up (Optional)
+      shell: pwsh  # Use PowerShell Core
       run: |
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+        if ("${{ matrix.os }}" -eq "windows-latest") {
           Remove-Item -Recurse -Force ./publish
-        else
+        } else {
           rm -rf ./publish
-        fi
+        }
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
