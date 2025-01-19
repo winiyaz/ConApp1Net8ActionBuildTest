@@ -36,7 +36,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=TestResults/test-results.trx"
 
     - name: Publish Test Results
       uses: actions/upload-artifact@v4
@@ -49,13 +49,16 @@ jobs:
       run: dotnet publish --configuration Release -o ./publish
 
     - name: Compress Artifacts
-      run: Compress-Archive -Path .\publish\* -DestinationPath app-windows.zip
+      run: Compress-Archive -Path .\publish\* -DestinationPath ConApp1Net8ActionBuildTest-windows.zip
+
+    - name: Clean Up (Optional)
+      run: Remove-Item -Recurse -Force ./publish
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-windows
-        path: app-windows.zip
+        name: ConApp1Net8ActionBuildTest-windows
+        path: ConApp1Net8ActionBuildTest-windows.zip
 
   release:
     needs: build
@@ -68,26 +71,16 @@ jobs:
     - name: Download Artifact
       uses: actions/download-artifact@v4
       with:
-        name: app-windows
+        name: ConApp1Net8ActionBuildTest-windows
         path: ./artifacts
 
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ github.run_number }}
-        release_name: Release v${{ github.run_number }}
+        tag_name: ConApp1Net8ActionBuildTest_BootySmells_v${{ github.run_number }}
+        name: ConApp1Net8ActionBuildTest_BootySmells_Release v${{ github.run_number }}
         draft: false
         prerelease: false
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v2
+        files: ./artifacts/ConApp1Net8ActionBuildTest-windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/app-windows.zip
-        asset_name: app-windows-v${{ github.run_number }}.zip
-        asset_content_type: application/zip
